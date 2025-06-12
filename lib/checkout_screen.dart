@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'models/cart.dart';
-import '../models/user.dart';
+import '../models/user.dart' as local_models;
 import 'order_success_screen.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -12,8 +15,9 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   final _formKey = GlobalKey<FormState>();
-  final _user = User();
+  final _user = local_models.User();
   final _cart = Cart();
+  final TextEditingController _addressController = TextEditingController();
   bool _isLoading = false;
 
   // Mock function to get current location
@@ -22,25 +26,129 @@ class _CheckoutPageState extends State<CheckoutPage> {
       _isLoading = true;
     });
 
-    // Simulate getting location
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // Minta permission
+      LocationPermission permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Izin lokasi ditolak'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
-    setState(() {
-      // Mock location (Jakarta coordinates)
-      _user.latitude = -6.2088;
-      _user.longitude = 106.8456;
-      _isLoading = false;
-    });
+      // Dapatkan posisi saat ini
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      _user.latitude = position.latitude;
+      _user.longitude = position.longitude;
 
-    // Show success message
-    if (mounted) {
+      // Reverse geocoding
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isNotEmpty) {
+        final placemark = placemarks.first;
+        final address = '${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.postalCode}, ${placemark.country}';
+        setState(() {
+          _user.address = address;
+          _addressController.text = address;
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lokasi berhasil didapatkan'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lokasi berhasil didapatkan'),
-          backgroundColor: Colors.green,
+          content: Text('Gagal mendapatkan lokasi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _submitOrder() async {
+    final supabase = Supabase.instance.client;
+    final supabaseUser = supabase.auth.currentUser;
+    final user = supabase.auth.currentUser;
+
+    print('auth user id: ${supabaseUser?.id}');
+
+    if (supabaseUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User belum login'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final response = await supabase.from('transactions').insert({
+        'user_id': user!.id,
+        'total_amount': _cart.totalPrice,
+        'address': _user.address,
+        'latitude': _user.latitude,
+        'longitude': _user.longitude,
+        'created_at': DateTime.now().toIso8601String(),
+      }).select().single();
+
+      final transactionId = response['id'];
+
+      final itemsData = _cart.items.map((e) => {
+        'transaction_id': transactionId,
+        'product_id': e.product.id,
+        'price': e.product.price,
+        'quantity': e.quantity,
+        'subtotal': e.quantity * e.product.price,
+      }).toList();
+
+      await supabase.from('transaction_details').insert(itemsData);
+
+      // Tampilkan notifikasi sukses
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pesanan berhasil dikirim'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigasi ke halaman sukses
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const OrderSuccessPage(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error submitting order: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal mengirim pesanan'),
+          backgroundColor: Colors.red,
         ),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
   }
 
   @override
@@ -172,6 +280,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 const SizedBox(height: 16),
 
                 TextFormField(
+                  controller: _addressController, // tambahkan ini
                   decoration: const InputDecoration(
                     labelText: 'Alamat Lengkap',
                     border: OutlineInputBorder(),
@@ -220,11 +329,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
 
                 // Show coordinates if available
-                if (_user.latitude != null && _user.longitude != null)
+                if (_user.address.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
-                      'Koordinat: ${_user.latitude}, ${_user.longitude}',
+                      'Alamat: ${_user.address}',
                       style: const TextStyle(color: Colors.green),
                     ),
                   ),
@@ -235,7 +344,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate()) {
                         if (_user.latitude == null || _user.longitude == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -247,13 +356,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           return;
                         }
 
-                        // Process order
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const OrderSuccessPage(),
-                          ),
-                        );
+                        await _submitOrder(); // navigasi hanya akan terjadi jika sukses
                       }
                     },
                     style: ElevatedButton.styleFrom(

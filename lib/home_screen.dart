@@ -51,7 +51,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bakery App'),
+        automaticallyImplyLeading: false, // Tambahkan baris ini
+        title: const Text('B-Ready Store'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),

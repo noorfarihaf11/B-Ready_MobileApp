@@ -1,25 +1,20 @@
 class User {
-  String name;
-  String email;
-  String phone;
-  String address;
+  String name = '';
+  String email = '';
+  String phone = '';
+  String address = '';
   double? latitude;
   double? longitude;
 
-  User({
-    this.name = '',
-    this.email = '',
-    this.phone = '',
-    this.address = '',
-    this.latitude,
-    this.longitude,
-  });
+  // Singleton instance
+  static final User _instance = User._internal();
 
-  // static final User _instance = User._internal();
-  //
-  // factory User() {
-  //   return _instance;
-  // }
-  //
-  // User._internal();
+  // Private constructor
+  User._internal();
+
+  // Factory constructor
+  factory User() {
+    return _instance;
+  }
+
 }

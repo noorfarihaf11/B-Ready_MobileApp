@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'auth_gate.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import 'cart_screen.dart';
@@ -30,7 +31,7 @@ class BakeryApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const MainScreen(),
+      home: const AuthGate(),
       debugShowCheckedModeBanner: false,
     );
   }
