@@ -1,0 +1,34 @@
+name: belajarflutter
+description: A simple location tracking app using Flutter
+version: 1.0.0
+
+environment:
+  sdk: '>=2.18.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  device_info_plus: ^9.0.0
+  image_picker: ^1.0.4
+  location_tracker: ^0.0.1
+  geolocator: ^11.0.0
+  geocoding: ^2.1.0
+  google_maps_flutter: ^2.5.0
+  sqflite: ^2.2.0
+  path: ^1.8.0
+  flutter_polyline_points: ^2.0.0
+  permission_handler: ^11.3.0
+  sensors_plus: ^3.0.0
+  connectivity_plus: ^4.0.0
+  encrypt: ^5.0.1
+  supabase_flutter: ^2.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
