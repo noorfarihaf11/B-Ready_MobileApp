@@ -92,7 +92,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 16),
 
                   const Text(
-                    'Bakery App',
+                    'B-Ready',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 32,

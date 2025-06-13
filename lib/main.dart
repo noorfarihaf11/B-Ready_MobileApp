@@ -5,8 +5,16 @@ import 'cart_screen.dart';
 import 'login_screen.dart';
 import 'admin_dashboard.dart';
 import 'models/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://pbirordvqiirvzyvwaxt.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiaXJvcmR2cWlpcnZ6eXZ3YXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk2OTY4ODIsImV4cCI6MjA2NTI3Mjg4Mn0.93scvcdx5YXIApytTo1v_qJFLa9yL4a-DZKXkBdsyhY',         // ganti dengan anon/public key
+  );
+
   runApp(const BakeryApp());
 }
 
