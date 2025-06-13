@@ -22,6 +22,7 @@ dependencies:
   connectivity_plus: ^4.0.0
   encrypt: ^5.0.1
   supabase_flutter: ^2.9.1
+  intl: ^0.18.0
 
 dev_dependencies:
   flutter_test:
